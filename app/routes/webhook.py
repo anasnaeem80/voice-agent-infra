@@ -1,18 +1,29 @@
-from fastapi import APIRouter
-from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from database import get_db
+from schemas import CallRequest
+from crud import create_call
 
 router = APIRouter()
 
+
 @router.post("/webhook")
-async def webhook(payload: dict):
+async def webhook(
+    payload: CallRequest,
+    db: Session = Depends(get_db)
+):
+    try:
+        call = create_call(db, payload)
 
-    print("=" * 60)
-    print("Webhook received")
-    print(datetime.utcnow())
-    print(payload)
-    print("=" * 60)
+        return {
+            "success": True,
+            "message": "Call stored successfully",
+            "id": call.id
+        }
 
-    return {
-        "success": True,
-        "message": "Webhook received"
-    }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to store call: {str(e)}"
+        )
