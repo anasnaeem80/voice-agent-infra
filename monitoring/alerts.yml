@@ -1,0 +1,14 @@
+groups:
+  - name: backend-alerts
+
+    rules:
+      - alert: BackendDown
+        expr: up{job="voice-backend"} == 0
+        for: 1m
+
+        labels:
+          severity: critical
+
+        annotations:
+          summary: "Voice backend is down"
+          description: "FastAPI backend has been unreachable for over 1 minute."

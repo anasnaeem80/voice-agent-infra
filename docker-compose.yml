@@ -1,5 +1,4 @@
 services:
-
   backend:
     build:
       context: ./app
@@ -30,6 +29,53 @@ services:
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus
+
+    container_name: prometheus
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml
+
+    depends_on:
+      - backend
+
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager
+
+    container_name: alertmanager
+
+    ports:
+      - "9093:9093"
+
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana-oss
+
+    container_name: grafana
+
+    ports:
+      - "3000:3000"
+
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+
+    depends_on:
+      - prometheus
 
     restart: unless-stopped
 
