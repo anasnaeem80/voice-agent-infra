@@ -15,29 +15,23 @@ via a DuckDNS domain.
 ## Architecture
 
 ```
-                    Vapi Voice Agent
-                          |
-                     HTTPS Webhook
-                          |
+                        Vapi
+                          │
                           ▼
-              agent-voice.duckdns.org
-                          |
-                Nginx Reverse Proxy
-                  (SSL Termination)
-                          |
+                HTTPS (Let's Encrypt)
+                          │
                           ▼
-             FastAPI Backend Container
-                     Port 8000
-                          |
-                          ▼
-              PostgreSQL 16 Container
-                          |
-        ┌─────────────────┴─────────────────┐
-        ▼                                   ▼
-  Backup Automation                  Monitoring Stack
-  - Postgres dumps                   - Prometheus
-  - Restore scripts                  - Grafana
-                                      - Alertmanager
+                 Nginx Reverse Proxy
+                          │
+          ┌───────────────┴───────────────┐
+          ▼                               ▼
+      FastAPI Backend                 Monitoring*
+          │                      ┌───────────────┐
+          ▼                      ▼               ▼
+     PostgreSQL             Prometheus*      Grafana*
+
+  * Monitoring stack is configured in monitoring/ but not yet
+    running in production — see "Live Deployment" status table above.
 ```
 
 ---
@@ -89,11 +83,31 @@ via a DuckDNS domain.
 - Monitoring stack
 - Database backup and restore automation
 
+**Deployment**
+
+- AWS EC2 deployment
+- DuckDNS domain
+- Nginx reverse proxy
+- HTTPS via Let's Encrypt
+- Docker Compose orchestration
+
 ---
 
 ## Live Deployment
 
-**Production URL:** `https://agent-voice.duckdns.org`
+| Service           | URL                                     | Status                                             |
+| ----------------- | --------------------------------------- | -------------------------------------------------- |
+| Application       | https://agent-voice.duckdns.org         | ✅ Live                                            |
+| API Documentation | https://agent-voice.duckdns.org/docs    | ✅ Live                                            |
+| Health Check      | https://agent-voice.duckdns.org/health  | ✅ Live                                            |
+| Webhook           | https://agent-voice.duckdns.org/webhook | ✅ Live                                            |
+| Grafana           | `http://<EC2_PUBLIC_IP>:3000`           | ⏳ Pending — not yet wired into docker-compose.yml |
+| Prometheus        | `http://<EC2_PUBLIC_IP>:9090`           | ⏳ Pending — not yet wired into docker-compose.yml |
+
+> Grafana and Prometheus configs exist in `monitoring/` but are not yet
+> included as services in `docker-compose.yml` on the production host.
+> If exposing them directly on 3000/9090, restrict access (security group
+> rule to your IP, or basic auth) rather than leaving them open publicly.
 
 **Health check**
 
@@ -204,6 +218,21 @@ docker ps
 
 ---
 
+## Infrastructure Verification
+
+The deployment has been verified with:
+
+- ✅ Docker containers running successfully (`backend`, `db`)
+- ✅ HTTPS enabled via Nginx + Let's Encrypt
+- ✅ Health endpoint responding (`/health`)
+- ✅ Swagger UI accessible (`/docs`)
+- ✅ Vapi webhook reachable (`/webhook`)
+- ✅ PostgreSQL connected and persisting data
+- ⏳ Prometheus — configured, not yet deployed to production
+- ⏳ Grafana — configured, not yet deployed to production
+
+---
+
 ## Nginx Reverse Proxy
 
 Nginx handles incoming HTTPS traffic and forwards requests to FastAPI.
@@ -220,7 +249,9 @@ FastAPI Container :8000
 
 ### HTTPS Configuration
 
-SSL certificates are generated using **Certbot** + **Let's Encrypt**.
+HTTPS is configured using Nginx as a reverse proxy with Let's Encrypt
+certificates. The FastAPI application is served securely over HTTPS.
+Certificates are generated using **Certbot**.
 
 Certificate renewal test:
 
@@ -349,13 +380,17 @@ infrastructure stays easy to reproduce.
 
 ### Current Limitations
 
-- Single EC2 instance — no horizontal scaling
-- No authentication layer on API endpoints
-- Alertmanager receiver is a placeholder (not yet wired to a real channel)
+- Single EC2 instance — no high availability
+- No authentication/authorization layer on API endpoints
+- Alertmanager uses placeholder configuration (not wired to a real channel)
 - No automated database migrations
+- Monitoring stack (Prometheus/Grafana) is configured in `monitoring/` but
+  not yet deployed as running services in production
 
 ### Future Improvements
 
+- Deploy Prometheus, Grafana, and Alertmanager as running services (configs
+  already exist in `monitoring/`, next immediate step)
 - Terraform infrastructure provisioning
 - Kubernetes deployment / AWS ECS or EKS migration
 - GitHub Container Registry for image publishing
