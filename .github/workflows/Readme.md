@@ -29,7 +29,6 @@ via a DuckDNS domain.
           │                      ┌───────────────┐
           ▼                      ▼               ▼
      PostgreSQL             Prometheus*      Grafana*
-
   * Monitoring stack is configured in monitoring/ but not yet
     running in production — see "Live Deployment" status table above.
 ```
@@ -55,9 +54,8 @@ via a DuckDNS domain.
 ## Technologies Used
 
 **Application:** Python, FastAPI, SQLAlchemy, PostgreSQL
-
+**Voice:** Twilio, Vapi
 **Infrastructure:** Docker, Docker Compose, Nginx, Prometheus, Grafana, Alertmanager
-
 **Automation:** GitHub Actions, shell scripting, backup scripts
 
 ---
@@ -68,6 +66,9 @@ via a DuckDNS domain.
 
 - FastAPI REST API
 - Vapi webhook endpoint
+- Inbound voice calls via Twilio + Vapi
+- LLM-powered conversational assistant
+- Webhook integration for call events
 - PostgreSQL database integration via SQLAlchemy ORM
 - CRUD operations
 - Health monitoring endpoint
@@ -133,6 +134,14 @@ https://agent-voice.duckdns.org/docs
 ```
 POST https://agent-voice.duckdns.org/webhook
 ```
+
+### Voice Agent
+
+The deployed voice agent is accessible through a Twilio phone number
+connected to Vapi. Incoming calls are handled by the Vapi assistant, which
+communicates with the FastAPI backend via webhook.
+
+**Phone Number to Call:** +1 (229) 996-1554
 
 ### API Endpoints
 
@@ -414,6 +423,7 @@ Agent backend:
 - ✔ Nginx reverse proxy
 - ✔ HTTPS with Let's Encrypt
 - ✔ Vapi webhook integration
+- ✔ Inbound voice calls via Twilio + Vapi
 - ✔ Monitoring strategy
 - ✔ Backup automation
 - ✔ CI/CD validation
